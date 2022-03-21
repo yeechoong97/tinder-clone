@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native'
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react'
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 
@@ -41,7 +41,6 @@ export const AuthProvider = ({ children }) => {
             setLoading(true);
             await GoogleSignin.signOut();
             await auth().signOut()
-            // setUser(null);
         }
         catch (error) {
             console.error(error);
@@ -49,8 +48,12 @@ export const AuthProvider = ({ children }) => {
         finally { () => setLoading(false) }
     }
 
+    const memoedValue = useMemo(() => ({
+        user, loading, signInWithGoogle, signOut
+    }), [user, loading])
+
     return (
-        <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+        <AuthContext.Provider value={memoedValue}>
             {!loadingInitial && children}
         </AuthContext.Provider>
     )
