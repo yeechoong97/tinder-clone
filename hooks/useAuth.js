@@ -13,7 +13,6 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() =>
         auth().onAuthStateChanged((user) => {
-            console.log(user);
             user ? setUser(user) : setUser(null);
             setLoadingInitial(false);
         }), []);
@@ -27,7 +26,6 @@ export const AuthProvider = ({ children }) => {
             const { idToken } = await GoogleSignin.signIn();
             const googleCredential = auth.GoogleAuthProvider.credential(idToken);
             const currentUser = await GoogleSignin.getCurrentUser();
-            console.log(currentUser);
             return auth().signInWithCredential(googleCredential);
         }
         catch (error) {
