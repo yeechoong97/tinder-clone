@@ -1,10 +1,11 @@
 import { Image, Text, View, Button, SafeAreaView, TouchableOpacity, StyleSheet } from 'react-native';
-import React, { useRef } from 'react';
+import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import useAuth from '../hooks/useAuth';
 import tw from 'tailwind-rn';
 import Icon from 'react-native-ionicons'
 import Swiper from 'react-native-deck-swiper';
+import firestore from '@react-native-firebase/firestore';
 
 const DUMMY_DATA = [
     {
@@ -37,7 +38,38 @@ const DUMMY_DATA = [
 const HomeScreen = () => {
     const navigation = useNavigation();
     const { signOut, user } = useAuth();
+    const [profiles, setProfiles] = useState([]);
     const swipeRef = useRef(null);
+
+    useLayoutEffect(() => {
+        firestore()
+            .collection('users')
+            .doc(user.uid)
+            .get()
+            .then((documentSnapshot) => {
+                if (!documentSnapshot.exists) {
+                    navigation.navigate("Modal");
+                }
+            });
+    }, [])
+
+    useEffect(() => {
+        const fetchCards = async () => {
+            firestore().collection('users').get().then(querySnapshot => {
+                console.log(querySnapshot.size);
+                setProfiles(
+                    querySnapshot.docs.filter(doc => doc.id !== user.uid).map((doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    }))
+                );
+            });
+        };
+
+        fetchCards();
+    }, [])
+
+    console.log(profiles);
 
     return (
         <SafeAreaView style={tw("flex-1")}>
@@ -60,7 +92,7 @@ const HomeScreen = () => {
                 <Swiper
                     ref={swipeRef}
                     containerStyle={{ backgroundColor: "transparent" }}
-                    cards={DUMMY_DATA}
+                    cards={profiles}
                     stackSize={5}
                     cardIndex={0}
                     animateCardOpacity
@@ -86,7 +118,7 @@ const HomeScreen = () => {
                             },
                         },
                     }}
-                    renderCard={card =>
+                    renderCard={(card) => card ? (
                         <View key={card.id}
                             style={tw("bg-white h-3/4 rounded-xl relative")}
                         >
@@ -94,15 +126,24 @@ const HomeScreen = () => {
 
                             <View style={[tw("flex-row justify-between items-center bg-white absolute bottom-0 w-full h-20 px-6 py-2 rounded-b-xl"), styles.cardShadow]}>
                                 <View>
-                                    <Text style={tw("text-xl font-bold")}>{card.firstName} {card.lastName}</Text>
-                                    <Text>{card.occupation}</Text>
+                                    <Text style={tw("text-xl font-bold")}>{card.displayName}</Text>
+                                    <Text>{card.job}</Text>
                                 </View>
                                 <View>
                                     <Text style={tw("text-2xl font-bold")}>{card.age}</Text>
                                 </View>
                             </View>
                         </View>
-                    } />
+                    ) : (
+                        <View
+                            style={[tw("relative bg-white h-3/4 rounded-xl justify-center items-center"), styles.cardShadow]}>
+                            <Text style={tw("font-bold pb-5")}>No More Profiles</Text>
+                            <Image style={tw("h-20 w-full")}
+                                height={100}
+                                width={100}
+                                source={{ uri: "https://links.papareact.com/6gb" }} />
+                        </View>
+                    )} />
             </View>
             <View style={tw("flex flex-row justify-evenly py-5")}>
                 <TouchableOpacity

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity } from 'react-native'
-import React, { useState, useLayoutEffect } from 'react'
+import React, { useState, useLayoutEffect, useEffect } from 'react'
 import tw from "tailwind-rn";
 import useAuth from "../hooks/useAuth";
 import { useNavigation } from '@react-navigation/native';
@@ -22,8 +22,9 @@ const ModalScreen = () => {
                 backgroundColor: "#FF5864",
             },
             headerTitleStyle: {
-                color: "white"
+                color: "white",
             },
+            headerBackVisible: false,
         })
     })
 
