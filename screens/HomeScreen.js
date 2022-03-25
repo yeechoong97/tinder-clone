@@ -55,21 +55,51 @@ const HomeScreen = () => {
 
     useEffect(() => {
         const fetchCards = async () => {
-            firestore().collection('users').get().then(querySnapshot => {
-                console.log(querySnapshot.size);
+
+            const passesResponse = await firestore().collection('users').doc(user.uid).collection('passes').get();
+
+            const passes = passesResponse.docs.map((doc) => doc.id);
+
+            const swipesResponse = await firestore().collection('users').doc(user.uid).collection('swipes').get();
+
+            const swipes = swipesResponse.docs.map((doc) => doc.id);
+
+            const passesUserIds = passes.length > 0 ? passes : ['test'];
+            const swipesUserIds = swipes.length > 0 ? swipes : ['test'];
+
+            const sub = firestore().collection('users').where('id', 'not-in', [...passesUserIds, ...swipesUserIds]).onSnapshot(documentSnapshot => {
                 setProfiles(
-                    querySnapshot.docs.filter(doc => doc.id !== user.uid).map((doc) => ({
+                    documentSnapshot.docs.filter(doc => doc.id !== user.uid).map((doc) => ({
                         id: doc.id,
                         ...doc.data(),
                     }))
                 );
             });
+            return () => sub();
         };
 
         fetchCards();
+
+
     }, [])
 
-    console.log(profiles);
+    const swipeLeft = async (cardIndex) => {
+        if (!profiles[cardIndex]) return;
+
+        const userSwiped = profiles[cardIndex];
+        console.log(`You swiped Pass on ${userSwiped.displayName}`);
+
+        await firestore().collection('users').doc(user.uid).collection('passes').doc(userSwiped.id).set(userSwiped);
+    }
+
+    const swipeRight = async (cardIndex) => {
+        if (!profiles[cardIndex]) return;
+
+        const userSwiped = profiles[cardIndex];
+        console.log(`You swiped Love on ${userSwiped.displayName}`);
+
+        await firestore().collection('users').doc(user.uid).collection('swipes').doc(userSwiped.id).set(userSwiped);
+    }
 
     return (
         <SafeAreaView style={tw("flex-1")}>
@@ -97,8 +127,8 @@ const HomeScreen = () => {
                     cardIndex={0}
                     animateCardOpacity
                     verticalSwipe={false}
-                    onSwipedLeft={() => { console.log("SWIPE PASS") }}
-                    onSwipedRight={() => { console.log("SWIPE MATCh") }}
+                    onSwipedLeft={(cardIndex) => swipeLeft(cardIndex)}
+                    onSwipedRight={(cardIndex) => swipeRight(cardIndex)}
                     overlayLabels={{
                         left: {
                             title: "NOPE",
