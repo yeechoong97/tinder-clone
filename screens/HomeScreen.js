@@ -6,6 +6,7 @@ import tw from 'tailwind-rn';
 import Icon from 'react-native-ionicons'
 import Swiper from 'react-native-deck-swiper';
 import firestore from '@react-native-firebase/firestore';
+import generateID from '../lib/generateID';
 
 const DUMMY_DATA = [
     {
@@ -96,7 +97,32 @@ const HomeScreen = () => {
         if (!profiles[cardIndex]) return;
 
         const userSwiped = profiles[cardIndex];
-        console.log(`You swiped Love on ${userSwiped.displayName}`);
+        const loggedInProfile = await (await firestore().collection('users').doc(user.uid).get()).data();
+
+        //Check if the user swiped on you
+        firestore().collection('users').doc(userSwiped.id).collection('swipes').doc(user.uid).get().then(documentSnapshot => {
+            if (documentSnapshot.exists) {
+                // user has matched with you before you matched with them...
+                console.log(`You matched with ${userSwiped.displayName}`);
+
+                firestore().collection('users').doc(user.uid).collection('swipes').doc(userSwiped.id).set(userSwiped);
+
+                //Create a MATCHES
+                firestore().collection('matches').doc(generateID(user.uid, userSwiped.id)).set({
+                    users: {
+                        [user.uid]: loggedInProfile,
+                        [userSwiped.id]: userSwiped
+                    },
+                    userMatched: [user.uid, userSwiped.id],
+                    timestamp: firestore.FieldValue.serverTimestamp(),
+                });
+
+                navigation.navigate("Match", { loggedInProfile, userSwiped })
+
+            } else {
+                console.log(`You swiped Love on ${userSwiped.displayName}`);
+            }
+        })
 
         await firestore().collection('users').doc(user.uid).collection('swipes').doc(userSwiped.id).set(userSwiped);
     }
